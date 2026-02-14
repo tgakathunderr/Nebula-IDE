@@ -21,7 +21,7 @@ export interface IElectronAPI {
     writeFile: (path: string, content: string) => Promise<boolean>;
   };
   ai: {
-    prompt: (prompt: string, activeFilePath: string | null) => Promise<{
+    prompt: (prompt: string, activeFilePath: string | null, projectRoot: string) => Promise<{
       summary: string;
       changes: Array<{
         path: string;
@@ -33,7 +33,7 @@ export interface IElectronAPI {
     saveSettings: (settings: AISettings) => Promise<boolean>;
   };
   terminal: {
-    start: (id: string) => void;
+    start: (id: string, cwd?: string) => void;
     write: (id: string, data: string) => void;
     kill: (id: string) => void;
     onData: (callback: (id: string, data: string) => void) => void;

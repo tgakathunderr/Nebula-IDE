@@ -1,53 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Café Delight</title>
-<link rel="stylesheet" href="src/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nebula IDE</title>
 </head>
+
 <body>
-<header>
-  <h1>Café Delight</h1>
-  <button id="menuToggle" aria-label="Toggle Menu">☰</button>
-  <nav>
-    <ul id="menu">
-      <li><a href="#home">Home</a></li>
-      <li><a href="#menuSection">Menu</a></li>
-      <li><a href="#hours">Hours</a></li>
-      <li><a href="#contact">Contact</a></li>
-    </ul>
-  </nav>
-</header>
-<main>
-  <section id="home">
-    <h2>Welcome to Café Delight</h2>
-    <p>Fresh coffee and cozy vibes every day.</p>
-  </section>
-  <section id="menuSection">
-    <h2>Our Menu</h2>
-    <ul>
-      <li>Espresso</li>
-      <li>Cappuccino</li>
-      <li>Latte</li>
-      <li>Fresh Croissant</li>
-      <li>Blueberry Muffin</li>
-    </ul>
-  </section>
-  <section id="hours">
-    <h2>Hours</h2>
-    <p>Mon – Fri: 7:00 am – 9:00 pm</p>
-    <p>Sat – Sun: 8:00 am – 8:00 pm</p>
-  </section>
-  <section id="contact">
-    <h2>Contact</h2>
-    <p>Email: <a href="mailto:info@cafe-delight.com">info@cafe-delight.com</a></p>
-    <p>Phone: <a href="tel:+11234567890">+1 (123) 456‑7890</a></p>
-  </section>
-</main>
-<footer>
-  <p>&copy; 2026 Café Delight</p>
-</footer>
-<script src="src/main.js"></script>
+  <div id="root"></div>
+  <script type="module" src="/src/renderer/main.tsx"></script>
 </body>
+
 </html>

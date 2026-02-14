@@ -11,12 +11,12 @@ contextBridge.exposeInMainWorld('electron', {
     writeFile: (path: string, content: string) => ipcRenderer.invoke('write-file', path, content),
   },
   ai: {
-    prompt: (prompt: string, activeFilePath: string | null) => ipcRenderer.invoke('ai-prompt', prompt, activeFilePath),
+    prompt: (prompt: string, activeFilePath: string | null, projectRoot: string) => ipcRenderer.invoke('ai-prompt', prompt, activeFilePath, projectRoot),
     getSettings: () => ipcRenderer.invoke('ai-get-settings'),
     saveSettings: (settings: any) => ipcRenderer.invoke('ai-save-settings', settings),
   },
   terminal: {
-    start: (id: string) => ipcRenderer.send('terminal-start', id),
+    start: (id: string, cwd?: string) => ipcRenderer.send('terminal-start', id, cwd),
     write: (id: string, data: string) => ipcRenderer.send('terminal-write', id, data),
     kill: (id: string) => ipcRenderer.send('terminal-kill', id),
     onData: (callback: (id: string, data: string) => void) => {

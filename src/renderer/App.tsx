@@ -9,6 +9,7 @@ const App: React.FC = () => {
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [editorValue, setEditorValue] = useState('// Welcome to Nebula IDE');
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
 
   const refreshFiles = async (root: string) => {
     try {
@@ -22,7 +23,8 @@ const App: React.FC = () => {
   const handleOpenFolder = async () => {
     const selectedPath = await window.electron.files.selectFolder();
     if (selectedPath) {
-      setProjectRoot(selectedPath);
+      const normalizedPath = selectedPath.replace(/\\/g, '/');
+      setProjectRoot(normalizedPath);
       setActiveFile(null);
       setOpenFiles([]);
       setEditorValue('// Project loaded: ' + selectedPath);
@@ -33,10 +35,11 @@ const App: React.FC = () => {
   const handleFileClick = async (relativeOrFullPath: string) => {
     if (!projectRoot) return;
 
-    // Normalize path to full path
-    const fullPath = relativeOrFullPath.startsWith(projectRoot)
-      ? relativeOrFullPath
-      : projectRoot + '/' + relativeOrFullPath;
+    // Normalize path to full path with forward slashes
+    const normalizedTarget = relativeOrFullPath.replace(/\\/g, '/');
+    const fullPath = normalizedTarget.startsWith(projectRoot)
+      ? normalizedTarget
+      : `${projectRoot}/${normalizedTarget.startsWith('/') ? normalizedTarget.slice(1) : normalizedTarget}`;
 
     try {
       const content = await window.electron.files.readFile(fullPath);
@@ -77,6 +80,15 @@ const App: React.FC = () => {
     }
   };
 
+  const [isChatOpen, setIsChatOpen] = useState(true);
+
+  const handleApprove = async () => {
+    if (projectRoot) {
+      await refreshFiles(projectRoot);
+      setPreviewRefreshKey(prev => prev + 1);
+    }
+  };
+
   return (
     <div className="nebula-container">
       <FileTree
@@ -85,7 +97,15 @@ const App: React.FC = () => {
         activeFile={activeFile}
         onOpenFolder={handleOpenFolder}
       />
+      {isChatOpen && (
+        <PromptPanel
+          activeFile={activeFile}
+          projectRoot={projectRoot}
+          onFileChange={handleApprove}
+        />
+      )}
       <Workspace
+        projectRoot={projectRoot}
         activeFile={activeFile}
         openFiles={openFiles}
         onTabClick={handleFileClick}
@@ -93,10 +113,9 @@ const App: React.FC = () => {
         editorValue={editorValue}
         onEditorChange={setEditorValue}
         onSave={handleSave}
-      />
-      <PromptPanel
-        activeFile={activeFile}
-        onFileChange={() => projectRoot && refreshFiles(projectRoot)}
+        isChatOpen={isChatOpen}
+        onToggleChat={() => setIsChatOpen(!isChatOpen)}
+        previewRefreshKey={previewRefreshKey}
       />
     </div>
   );

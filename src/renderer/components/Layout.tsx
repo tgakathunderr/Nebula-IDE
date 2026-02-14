@@ -11,6 +11,17 @@ interface FileTreeProps {
 }
 
 export const FileTree: React.FC<FileTreeProps> = ({ files, onFileClick, activeFile, onOpenFolder }) => {
+  const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
+
+  const toggleFolder = (path: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+
   const renderTree = (fileList: string[]) => {
     const tree: any = {};
     fileList.forEach(path => {
@@ -31,23 +42,28 @@ export const FileTree: React.FC<FileTreeProps> = ({ files, onFileClick, activeFi
         return a.localeCompare(b);
       }).map(name => {
         const currentPath = parentPath ? `${parentPath}/${name}` : name;
+        const normalizedCurrentPath = currentPath.replace(/\\/g, '/');
         const isFolder = obj[name] !== null;
-        const isActive = activeFile === currentPath;
+        const isExpanded = expandedFolders.has(normalizedCurrentPath);
+        const isActive = activeFile?.replace(/\\/g, '/').endsWith(normalizedCurrentPath);
 
         return (
-          <div key={currentPath} style={{ paddingLeft: parentPath ? '12px' : '0' }}>
+          <div key={normalizedCurrentPath} style={{ paddingLeft: parentPath ? '12px' : '0' }}>
             <div
-              onClick={() => !isFolder && onFileClick(currentPath)}
-              className={`file-item ${activeFile?.replace(/\\/g, '/').endsWith(currentPath) ? 'active' : ''}`}
+              onClick={() => isFolder ? toggleFolder(normalizedCurrentPath) : onFileClick(normalizedCurrentPath)}
+              className={`file-item ${isActive ? 'active' : ''}`}
             >
-              <span className={isFolder ? 'folder-icon' : `file-icon ${activeFile?.replace(/\\/g, '/').endsWith(currentPath) ? 'active' : ''}`}>
+              <span className="expansion-icon" style={{ width: '16px', display: 'inline-block', fontSize: '10px', color: 'var(--text-muted)' }}>
+                {isFolder ? (isExpanded ? '▼' : '▶') : ''}
+              </span>
+              <span className={isFolder ? 'folder-icon' : `file-icon ${isActive ? 'active' : ''}`}>
                 {isFolder ? '󰉋' : (name.endsWith('.ts') || name.endsWith('.tsx') ? '󰛦' : '󰈙')}
               </span>
               <span className="file-label">
                 {name}
               </span>
             </div>
-            {isFolder && buildNodes(obj[name], currentPath)}
+            {isFolder && isExpanded && buildNodes(obj[name], normalizedCurrentPath)}
           </div>
         );
       });
@@ -64,9 +80,9 @@ export const FileTree: React.FC<FileTreeProps> = ({ files, onFileClick, activeFi
           Open Folder
         </button>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 0' }}>
+      <div className="file-tree-content">
         {files.length === 0 ? (
-          <div style={{ padding: '24px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+          <div className="empty-state">
             No folder opened.
           </div>
         ) : (
@@ -112,7 +128,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onSave, activeF
         }}
       />
       {activeFile && (
-        <div style={{ position: 'absolute', bottom: '24px', right: '24px', display: 'flex', gap: '8px', zIndex: 10 }}>
+        <div className="editor-actions">
           <button onClick={onSave} className="nebula-button nebula-button-primary">
             Save
           </button>
@@ -124,10 +140,11 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onSave, activeF
 
 interface PromptPanelProps {
   activeFile: string | null;
+  projectRoot: string | null;
   onFileChange: () => void;
 }
 
-export const PromptPanel: React.FC<PromptPanelProps> = ({ activeFile, onFileChange }) => {
+export const PromptPanel: React.FC<PromptPanelProps> = ({ activeFile, projectRoot, onFileChange }) => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{ summary: string, changes: any[] } | null>(null);
@@ -140,11 +157,27 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({ activeFile, onFileChan
   // Settings State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // Helper to ensure path is absolute relative to projectRoot
+  const resolvePath = (filePath: string) => {
+    if (!projectRoot) return filePath;
+    const normalizedProjectRoot = projectRoot.replace(/\\/g, '/');
+    const normalizedFilePath = filePath.replace(/\\/g, '/');
+
+    if (normalizedFilePath.startsWith(normalizedProjectRoot)) {
+      return normalizedFilePath;
+    }
+    const cleanPath = normalizedFilePath.startsWith('/') ? normalizedFilePath.slice(1) : normalizedFilePath;
+    return `${normalizedProjectRoot}/${cleanPath}`;
+  };
+
   const handleGenerate = async () => {
-    if (!prompt.trim() || loading) return;
+    if (!prompt.trim() || loading || !projectRoot) {
+      if (!projectRoot) alert('Please open a folder first');
+      return;
+    }
     setLoading(true);
     try {
-      const result = await window.electron.ai.prompt(prompt, activeFile);
+      const result = await window.electron.ai.prompt(prompt, activeFile, projectRoot);
       setResponse(result);
     } catch (error) {
       console.error('AI Error:', error);
@@ -157,13 +190,14 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({ activeFile, onFileChan
   const openDiffReview = async (change: any) => {
     try {
       let original = '';
+      const fullPath = resolvePath(change.path);
       try {
-        original = await window.electron.files.readFile(change.path);
+        original = await window.electron.files.readFile(fullPath);
       } catch (e) {
         // Assume file is being created if not found
       }
       setOriginalContent(original);
-      setPendingChange(change);
+      setPendingChange({ ...change, path: fullPath });
       setIsDiffOpen(true);
     } catch (error) {
       console.error('Diff Load Error:', error);
@@ -171,14 +205,14 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({ activeFile, onFileChan
     }
   };
 
-  const handleConfirmApply = async () => {
-    if (!pendingChange) return;
+  const handleConfirmApply = async (changeToApply: any) => {
+    if (!changeToApply || !projectRoot) return;
     try {
-      await window.electron.files.writeFile(pendingChange.path, pendingChange.content);
+      const fullPath = resolvePath(changeToApply.path);
+      await window.electron.files.writeFile(fullPath, changeToApply.content);
       onFileChange();
       setIsDiffOpen(false);
       setPendingChange(null);
-      alert(`Successfully applied changes to ${pendingChange.path}`);
     } catch (error) {
       console.error('Apply Error:', error);
       alert('Failed to apply changes');
@@ -191,75 +225,57 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({ activeFile, onFileChan
         <span className="panel-title">AI Chat</span>
         <button
           onClick={() => setIsSettingsOpen(true)}
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px' }}
+          className="icon-button"
         >
           ⚙
         </button>
       </div>
 
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, gap: '16px' }}>
+      <div className="prompt-content">
         <textarea
           placeholder="I need help with..."
           className="nebula-input"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           disabled={loading}
-          style={{ width: '100%', height: '140px', resize: 'none' }}
+          rows={5}
         />
 
         <button
           onClick={handleGenerate}
           disabled={loading}
           className="nebula-button nebula-button-primary"
-          style={{ padding: '10px' }}
         >
           {loading ? 'Thinking...' : 'Generate Code'}
         </button>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="prompt-responses">
           {!response && !loading && (
-            <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', marginTop: '40px' }}>
+            <div className="empty-state">
               Ask me anything about your code.
             </div>
           )}
 
           {loading && (
-            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--accent-primary)', fontSize: '13px' }}>
+            <div className="loading-state">
               Processing request...
             </div>
           )}
 
           {response && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{
-                fontSize: '13px',
-                color: 'var(--text-primary)',
-                lineHeight: '1.6',
-                background: 'var(--bg-primary)',
-                padding: '16px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)'
-              }}>
+            <div className="ai-response-container">
+              <div className="ai-summary">
                 {response.summary}
               </div>
 
               {response.changes.map((change: any, idx: number) => (
-                <div key={idx} style={{
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <div key={idx} className="ai-change-item">
+                  <span className="file-path-badge">
                     {change.path.split(/[/\\]/).pop()}
                   </span>
                   <button
                     onClick={() => openDiffReview(change)}
                     className="nebula-button"
-                    style={{ padding: '4px 8px', fontSize: '11px' }}
                   >
                     View Diff
                   </button>
@@ -273,7 +289,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({ activeFile, onFileChan
       <DiffModal
         isOpen={isDiffOpen}
         onClose={() => setIsDiffOpen(false)}
-        onConfirm={handleConfirmApply}
+        onConfirm={() => handleConfirmApply(pendingChange)}
         originalContent={originalContent}
         proposedContent={pendingChange?.content || ''}
         filePath={pendingChange?.path || ''}

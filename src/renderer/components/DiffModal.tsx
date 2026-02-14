@@ -21,58 +21,18 @@ const DiffModal: React.FC<DiffModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            backdropFilter: 'blur(30px) saturate(200%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            color: '#fff',
-            padding: '40px'
-        }}>
-            <div style={{
-                backgroundColor: 'var(--nebula-bg-layered)',
-                width: '95%',
-                height: '90%',
-                borderRadius: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '0 40px 100px rgba(0,0,0,0.8)',
-                border: '1px solid var(--nebula-border)',
-                overflow: 'hidden'
-            }}>
-                {/* Header */}
-                <div style={{
-                    padding: '24px 32px',
-                    borderBottom: '1px solid var(--border-medium)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'var(--bg-secondary)'
-                }}>
+        <div className="modal-overlay">
+            <div className="modal-container" style={{ width: '90vw', height: '90vh' }}>
+                <div className="panel-header">
                     <div>
-                        <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Review Changes</h2>
-                        <div style={{ fontSize: '11px', color: 'var(--accent-primary)', marginTop: '4px', opacity: 0.8 }}>
-                            File: {filePath}
+                        <span className="panel-title">Review Changes</span>
+                        <div style={{ fontSize: '11px', color: 'var(--accent)', marginTop: '2px' }}>
+                            {filePath}
                         </div>
                     </div>
-                    <button onClick={onClose} style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontSize: '24px',
-                        lineHeight: 1
-                    }}>×</button>
+                    <button onClick={onClose} className="icon-button" style={{ fontSize: '24px' }}>×</button>
                 </div>
 
-                {/* Diff Content */}
                 <div style={{ flex: 1, position: 'relative' }}>
                     <DiffEditor
                         original={originalContent}
@@ -87,25 +47,14 @@ const DiffModal: React.FC<DiffModalProps> = ({
                             fontFamily: "'JetBrains Mono', monospace",
                             automaticLayout: true,
                             scrollBeyondLastLine: false,
-                            padding: { top: 0, bottom: 0 },
+                            padding: { top: 12, bottom: 12 },
                             renderOverviewRuler: false,
-                            diffAlgorithm: 'advanced'
                         }}
                     />
                 </div>
 
-                {/* Footer */}
-                <div style={{
-                    padding: '20px 32px',
-                    borderTop: '1px solid var(--border-medium)',
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    gap: '12px',
-                    background: 'var(--bg-secondary)'
-                }}>
-                    <button onClick={onClose} className="nebula-button">
-                        Cancel
-                    </button>
+                <div className="modal-footer">
+                    <button onClick={onClose} className="nebula-button">Cancel</button>
                     <button onClick={onConfirm} className="nebula-button nebula-button-primary">
                         Apply Changes
                     </button>

@@ -14,8 +14,8 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ path }) => {
     return (
         <div className="breadcrumb-bar">
             <span>{folderPath}</span>
-            <span style={{ margin: '0 4px', opacity: 0.3 }}>/</span>
-            <span style={{ color: 'var(--text-active)', fontWeight: 500 }}>{fileName}</span>
+            <span className="breadcrumb-separator">/</span>
+            <span className="breadcrumb-item-active">{fileName}</span>
         </div>
     );
 };

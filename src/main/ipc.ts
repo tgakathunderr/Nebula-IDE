@@ -16,8 +16,8 @@ export function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('ai-prompt', async (_, prompt: string, activeFilePath: string | null) => {
-    return await aiController.handlePrompt(prompt, activeFilePath);
+  ipcMain.handle('ai-prompt', async (_, prompt: string, activeFilePath: string | null, projectRoot: string) => {
+    return await aiController.handlePrompt(prompt, activeFilePath, projectRoot);
   });
 
   ipcMain.handle('get-files', async (_, dirPath: string) => {
@@ -58,6 +58,8 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('write-file', async (_, filePath: string, content: string) => {
     try {
+      // Ensure parent directory exists
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, content, 'utf-8');
       return true;
     } catch (error) {
@@ -67,13 +69,13 @@ export function registerIpcHandlers() {
   });
 
   // Terminal Handlers
-  ipcMain.on('terminal-start', (event, id: string) => {
+  ipcMain.on('terminal-start', (event, id: string, cwd?: string) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return;
     if (!(win as any).terminalManager) {
       // This will be handled in main.ts to inject the manager
     }
-    (win as any).terminalManager?.startTerminal(id);
+    (win as any).terminalManager?.startTerminal(id, cwd);
   });
 
   ipcMain.on('terminal-write', (event, id: string, data: string) => {

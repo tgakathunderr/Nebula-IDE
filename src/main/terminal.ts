@@ -6,12 +6,12 @@ export class TerminalManager {
 
     constructor(private mainWindow: BrowserWindow) { }
 
-    startTerminal(id: string) {
+    startTerminal(id: string, cwd: string = process.cwd()) {
         if (this.processes.has(id)) return;
 
         const shell = process.platform === 'win32' ? 'powershell.exe' : 'bash';
         const p = spawn(shell, [], {
-            cwd: process.cwd(),
+            cwd: cwd,
             env: process.env
         });
 

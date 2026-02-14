@@ -13,34 +13,34 @@ export class MinimalContextBuilder {
         }
     }
 
-    async buildContext(activeFilePath: string | null): Promise<AIContext> {
+    async buildContext(activeFilePath: string | null, projectRoot: string): Promise<AIContext> {
         let activeFile = undefined;
         let vibes = undefined;
 
         if (activeFilePath) {
             try {
-                const fullPath = path.isAbsolute(activeFilePath) ? activeFilePath : path.join(process.cwd(), activeFilePath);
+                const fullPath = path.isAbsolute(activeFilePath) ? activeFilePath : path.join(projectRoot, activeFilePath);
                 const content = await fs.readFile(fullPath, 'utf-8');
                 activeFile = {
                     path: activeFilePath,
-                    content: content.slice(0, 5000) // Further reduced for compactness
+                    content: content.slice(0, 5000)
                 };
             } catch (error) {
                 console.error('Failed to read active file for context:', error);
             }
         }
 
-        // Try to read .vibe.json
+        // Try to read .vibe.json in the project root
         try {
-            const vibePath = path.join(process.cwd(), '.vibe.json');
+            const vibePath = path.join(projectRoot, '.vibe.json');
             const vibeContent = await fs.readFile(vibePath, 'utf-8');
             vibes = JSON.parse(vibeContent);
         } catch {
             // Ignore if not found or invalid
         }
 
-        // Get project files (flat list, sorted for determinism)
-        const projectFiles = await this.getQuickFileList();
+        // Get project files from the guest root
+        const projectFiles = await this.getQuickFileList(projectRoot);
 
         return {
             activeFile,
@@ -50,13 +50,13 @@ export class MinimalContextBuilder {
         };
     }
 
-    private async getQuickFileList(): Promise<string[]> {
+    private async getQuickFileList(projectRoot: string): Promise<string[]> {
         try {
-            const dirents = await fs.readdir(process.cwd(), { withFileTypes: true });
+            const dirents = await fs.readdir(projectRoot, { withFileTypes: true });
             return dirents
                 .filter(d => !d.isDirectory() || !['node_modules', '.git', 'dist', 'dist-electron'].includes(d.name))
                 .map(d => d.name)
-                .sort(); // Deterministic
+                .sort();
         } catch {
             return [];
         }

@@ -50,13 +50,13 @@ export class AIController {
         });
     }
 
-    async handlePrompt(prompt: string, activeFilePath: string | null): Promise<AIResponse> {
+    async handlePrompt(prompt: string, activeFilePath: string | null, projectRoot: string): Promise<AIResponse> {
         const provider = this.registry.getActiveProvider();
         if (!provider) {
             throw new Error('No AI provider available');
         }
 
-        const context = await this.contextBuilder.buildContext(activeFilePath);
+        const context = await this.contextBuilder.buildContext(activeFilePath, projectRoot);
 
         // Add user prompt to history
         this.contextBuilder.addHistory('user', prompt);
