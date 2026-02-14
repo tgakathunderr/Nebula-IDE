@@ -42,7 +42,11 @@ export const TerminalPanel: React.FC<TerminalPanelProps> = ({ id, projectRoot })
 
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            const container = scrollRef.current;
+            const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+            if (isAtBottom) {
+                container.scrollTop = container.scrollHeight;
+            }
         }
     }, [lines]);
 
@@ -60,8 +64,13 @@ export const TerminalPanel: React.FC<TerminalPanelProps> = ({ id, projectRoot })
         }
     };
 
+    const focusInput = () => {
+        const inputEl = document.querySelector('.terminal-input') as HTMLInputElement;
+        if (inputEl) inputEl.focus();
+    };
+
     return (
-        <div className="terminal-container">
+        <div className="terminal-container" onClick={focusInput}>
             {pendingCommand && (
                 <div className="modal-overlay">
                     <div className="modal-container">

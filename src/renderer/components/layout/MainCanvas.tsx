@@ -80,6 +80,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = (props) => {
                         <AIPanel
                             activeFile={props.activeFile}
                             projectRoot={props.projectRoot}
+                            activeTerminalId={activeTerminalId}
                             onFileChange={props.onCommandApprove}
                         />
                     </div>

@@ -4,9 +4,15 @@ export interface AIChange {
     content: string;
 }
 
+export interface AICommand {
+    command: string;
+    description: string;
+}
+
 export interface AIResponse {
     summary: string;
     changes: AIChange[];
+    commands?: AICommand[];
 }
 
 export interface AIContext {

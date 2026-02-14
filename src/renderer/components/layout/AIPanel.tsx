@@ -5,13 +5,26 @@ import { SettingsModal } from '../SettingsModal';
 interface AIPanelProps {
     activeFile: string | null;
     projectRoot: string | null;
+    activeTerminalId: string;
     onFileChange: () => void;
 }
 
-export const AIPanel: React.FC<AIPanelProps> = ({ activeFile, projectRoot, onFileChange }) => {
+interface Message {
+    role: 'user' | 'assistant';
+    content: string;
+    response?: {
+        summary: string,
+        changes: any[],
+        commands?: any[]
+    };
+}
+
+export const AIPanel: React.FC<AIPanelProps> = ({ activeFile, projectRoot, activeTerminalId, onFileChange }) => {
     const [prompt, setPrompt] = useState('');
     const [loading, setLoading] = useState(false);
-    const [response, setResponse] = useState<{ summary: string, changes: any[] } | null>(null);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [lastResponse, setLastResponse] = useState<any>(null); // For "Apply All" to reference latest
+    const chatEndRef = React.useRef<HTMLDivElement>(null);
 
     // Diff Modal State
     const [isDiffOpen, setIsDiffOpen] = useState(false);
@@ -34,15 +47,33 @@ export const AIPanel: React.FC<AIPanelProps> = ({ activeFile, projectRoot, onFil
         return `${normalizedProjectRoot}/${cleanPath}`;
     };
 
+    React.useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, loading]);
+
     const handleGenerate = async () => {
         if (!prompt.trim() || loading || !projectRoot) {
             if (!projectRoot) alert('Please open a folder first');
             return;
         }
+
+        const userMsg: Message = { role: 'user', content: prompt };
+        setMessages(prev => [...prev, userMsg]);
+        const currentPrompt = prompt;
+        setPrompt('');
         setLoading(true);
+
         try {
-            const result = await window.electron.ai.prompt(prompt, activeFile, projectRoot);
-            setResponse(result);
+            const result = await window.electron.ai.prompt(currentPrompt, activeFile, projectRoot);
+            const assistantMsg: Message = {
+                role: 'assistant',
+                content: result.summary,
+                response: result
+            };
+            setMessages(prev => [...prev, assistantMsg]);
+            setLastResponse(result);
         } catch (error) {
             console.error('AI Error:', error);
             alert('Failed to generate response');
@@ -83,75 +114,164 @@ export const AIPanel: React.FC<AIPanelProps> = ({ activeFile, projectRoot, onFil
         }
     };
 
+    const handleApplyAll = async () => {
+        if (!lastResponse || !lastResponse.changes || !projectRoot) return;
+        setLoading(true);
+        try {
+            for (const change of lastResponse.changes) {
+                const fullPath = resolvePath(change.path);
+                await window.electron.files.writeFile(fullPath, change.content);
+            }
+            onFileChange();
+            alert(`Applied ${lastResponse.changes.length} changes successfully`);
+            setLastResponse(null); // Clear last response after successful apply all
+        } catch (error) {
+            console.error('Apply All Error:', error);
+            alert('Failed to apply some changes');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRunCommand = (command: string) => {
+        if (!activeTerminalId) {
+            alert('No active terminal found');
+            return;
+        }
+        window.electron.terminal.write(activeTerminalId, command + '\n');
+    };
+
     return (
         <div className="prompt-panel">
             <div className="panel-header">
-                <span className="panel-title">AI Assistant</span>
+                <span className="panel-title">Nebula AI</span>
                 <button
                     onClick={() => setIsSettingsOpen(true)}
                     className="icon-button"
+                    title="Settings"
                 >
                     ⚙️
                 </button>
             </div>
 
             <div className="prompt-content">
-                <textarea
-                    placeholder="Describe what you want to build..."
-                    className="nebula-input"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    disabled={loading}
-                    rows={4}
-                />
-
-                <button
-                    onClick={handleGenerate}
-                    disabled={loading}
-                    className="nebula-button nebula-button-primary"
-                >
-                    {loading ? 'Thinking...' : 'Generate Intent'}
-                </button>
+                <div className="nebula-input-wrapper">
+                    <textarea
+                        placeholder="What are we building today?"
+                        className="nebula-input"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleGenerate();
+                            }
+                        }}
+                        disabled={loading}
+                        rows={3}
+                    />
+                    <div className="input-actions">
+                        <button
+                            onClick={handleGenerate}
+                            disabled={loading || !prompt.trim()}
+                            className="nebula-button nebula-button-primary"
+                        >
+                            {loading ? 'Thinking...' : 'Generate'}
+                        </button>
+                    </div>
+                </div>
 
                 <div className="prompt-responses">
-                    {!response && !loading && (
+                    {messages.length === 0 && !loading && (
                         <div className="empty-state">
-                            I can help you build and refine your project. Try asking for a layout or a specific feature.
+                            <p>Ask me to create a feature, fix a bug, or refactor code.</p>
                         </div>
                     )}
+
+                    {messages.map((msg, idx) => (
+                        <div key={idx} className={`chat-message ${msg.role}`}>
+                            <div className="message-content">
+                                {msg.role === 'user' ? (
+                                    <div className="user-prompt-text">{msg.content}</div>
+                                ) : (
+                                    <div className="ai-response-container">
+                                        <div className="ai-summary">
+                                            {msg.content}
+                                        </div>
+
+                                        {msg.response && (
+                                            <>
+                                                {msg.response.changes && msg.response.changes.length > 0 && (
+                                                    <div className="ai-section">
+                                                        <div className="section-header">
+                                                            <div className="section-label">Suggested Fixes</div>
+                                                            {msg.response.changes.length > 1 && (
+                                                                <button
+                                                                    onClick={handleApplyAll}
+                                                                    className="nebula-button nebula-button-primary"
+                                                                    title="Apply all suggested changes at once"
+                                                                >
+                                                                    Apply All
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <div className="ai-changes-list">
+                                                            {msg.response.changes.map((change: any, cIdx: number) => (
+                                                                <div key={cIdx} className="ai-change-item">
+                                                                    <div className="ai-change-info">
+                                                                        <span className="file-icon">📄</span>
+                                                                        <span className="file-path-badge">
+                                                                            {change.path.split(/[/\\]/).pop()}
+                                                                        </span>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => openDiffReview(change)}
+                                                                        className="nebula-button"
+                                                                    >
+                                                                        Review
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {msg.response.commands && msg.response.commands.length > 0 && (
+                                                    <div className="ai-section">
+                                                        <div className="section-label">Terminal Commands</div>
+                                                        <div className="ai-commands-list">
+                                                            {msg.response.commands.map((cmd: any, cmdIdx: number) => (
+                                                                <div key={cmdIdx} className="ai-command-item">
+                                                                    <div className="ai-command-info">
+                                                                        <span className="command-text">{cmd.command}</span>
+                                                                        <span className="command-desc">{cmd.description}</span>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => handleRunCommand(cmd.command)}
+                                                                        className="nebula-button nebula-button-primary"
+                                                                    >
+                                                                        Run
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
 
                     {loading && (
                         <div className="loading-state">
-                            <span className="pulse">🧠</span> Thinking...
+                            <span className="pulse">🧠</span>
+                            <p>Architecting solution...</p>
                         </div>
                     )}
-
-                    {response && (
-                        <div className="ai-response-container">
-                            <div className="ai-summary glass-panel">
-                                {response.summary}
-                            </div>
-
-                            <div className="ai-changes-list">
-                                {response.changes.map((change: any, idx: number) => (
-                                    <div key={idx} className="ai-change-item glass-panel">
-                                        <div className="ai-change-info">
-                                            <span className="file-icon">📄</span>
-                                            <span className="file-path-badge">
-                                                {change.path.split(/[/\\]/).pop()}
-                                            </span>
-                                        </div>
-                                        <button
-                                            onClick={() => openDiffReview(change)}
-                                            className="nebula-button-sm"
-                                        >
-                                            Review
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <div ref={chatEndRef} />
                 </div>
             </div>
 

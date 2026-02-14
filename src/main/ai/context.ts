@@ -4,7 +4,7 @@ import { AIContext } from './types';
 
 export class MinimalContextBuilder {
     private history: { role: 'user' | 'assistant'; content: string }[] = [];
-    private readonly historyLimit = 10;
+    private readonly historyLimit = 15;
 
     addHistory(role: 'user' | 'assistant', content: string) {
         this.history.push({ role, content });
@@ -23,24 +23,24 @@ export class MinimalContextBuilder {
                 const content = await fs.readFile(fullPath, 'utf-8');
                 activeFile = {
                     path: activeFilePath,
-                    content: content.slice(0, 5000)
+                    content: content.slice(0, 10000) // Increased limit
                 };
             } catch (error) {
                 console.error('Failed to read active file for context:', error);
             }
         }
 
-        // Try to read .vibe.json in the project root
+        // Try to read .vibe.json or package.json
         try {
-            const vibePath = path.join(projectRoot, '.vibe.json');
-            const vibeContent = await fs.readFile(vibePath, 'utf-8');
-            vibes = JSON.parse(vibeContent);
+            const packagePath = path.join(projectRoot, 'package.json');
+            const pkgContent = await fs.readFile(packagePath, 'utf-8');
+            vibes = JSON.parse(pkgContent);
         } catch {
-            // Ignore if not found or invalid
+            // Ignore if not found
         }
 
-        // Get project files from the guest root
-        const projectFiles = await this.getQuickFileList(projectRoot);
+        // Get project structure
+        const projectFiles = await this.getDeepFileList(projectRoot);
 
         return {
             activeFile,
@@ -50,13 +50,27 @@ export class MinimalContextBuilder {
         };
     }
 
-    private async getQuickFileList(projectRoot: string): Promise<string[]> {
+    private async getDeepFileList(root: string, currentDir: string = '', depth: number = 0): Promise<string[]> {
+        if (depth > 3) return []; // Limit depth for performance
+
         try {
-            const dirents = await fs.readdir(projectRoot, { withFileTypes: true });
-            return dirents
-                .filter(d => !d.isDirectory() || !['node_modules', '.git', 'dist', 'dist-electron'].includes(d.name))
-                .map(d => d.name)
-                .sort();
+            const fullPath = path.join(root, currentDir);
+            const dirents = await fs.readdir(fullPath, { withFileTypes: true });
+
+            let files: string[] = [];
+            for (const dirent of dirents) {
+                const relPath = path.join(currentDir, dirent.name).replace(/\\/g, '/');
+
+                if (dirent.isDirectory()) {
+                    if (['node_modules', '.git', 'dist', 'dist-electron', 'build'].includes(dirent.name)) continue;
+                    files.push(relPath + '/');
+                    const subFiles = await this.getDeepFileList(root, relPath, depth + 1);
+                    files = [...files, ...subFiles];
+                } else {
+                    files.push(relPath);
+                }
+            }
+            return files;
         } catch {
             return [];
         }

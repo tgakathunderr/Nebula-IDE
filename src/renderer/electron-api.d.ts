@@ -28,6 +28,10 @@ export interface IElectronAPI {
         action: 'modify' | 'create' | 'delete';
         content: string;
       }>;
+      commands?: Array<{
+        command: string;
+        description: string;
+      }>;
     }>;
     getSettings: () => Promise<AISettings>;
     saveSettings: (settings: AISettings) => Promise<boolean>;

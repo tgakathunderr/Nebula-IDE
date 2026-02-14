@@ -24,29 +24,35 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     return (
         <div className="preview-container">
             <div className="panel-header">
-                <input
-                    type="text"
-                    value={previewUrl}
-                    onChange={(e) => setPreviewUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && setPreviewUrl((e.target as HTMLInputElement).value)}
-                    className="preview-address-bar"
-                />
+                <div className="preview-address-wrapper">
+                    <span className="address-icon">🔒</span>
+                    <input
+                        type="text"
+                        value={previewUrl}
+                        onChange={(e) => setPreviewUrl(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && setPreviewUrl((e.target as HTMLInputElement).value)}
+                        className="preview-address-bar"
+                        placeholder="http://localhost:3000"
+                    />
+                </div>
                 <div className="preview-actions">
-                    <button className="nebula-button" onClick={handleReload} title="Reload Preview">
-                        Reload
+                    <button className="icon-button" onClick={handleReload} title="Reload Preview">
+                        🔄
                     </button>
-                    <button className="nebula-button" onClick={handleOpenExternal} title="Open in Browser">
+                    <button className="icon-button" onClick={handleOpenExternal} title="Open in Browser">
                         ↗
                     </button>
                 </div>
             </div>
-            <iframe
-                key={`${previewUrl}-${previewRefreshKey}`}
-                src={previewUrl}
-                className="preview-iframe"
-                title="Preview"
-                sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
-            />
+            <div className="preview-iframe-wrapper">
+                <iframe
+                    key={`${previewUrl}-${previewRefreshKey}`}
+                    src={previewUrl}
+                    className="preview-iframe"
+                    title="Preview"
+                    sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
+                />
+            </div>
         </div>
     );
 };
