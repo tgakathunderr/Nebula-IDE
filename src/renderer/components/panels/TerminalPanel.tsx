@@ -1,19 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-interface TerminalProps {
+interface TerminalPanelProps {
     id: string;
     projectRoot: string | null;
 }
 
-export const Terminal: React.FC<TerminalProps> = ({ id, projectRoot }) => {
+export const TerminalPanel: React.FC<TerminalPanelProps> = ({ id, projectRoot }) => {
     const [lines, setLines] = useState<string[]>([]);
     const [input, setInput] = useState('');
     const [pendingCommand, setPendingCommand] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Start terminal session with specific ID
+        // Normalize root for consistent Windows/Unix behavior
         const normalizedRoot = projectRoot?.replace(/\\/g, '/');
+
+        // Start terminal session with the project root explicitly
         window.electron.terminal.start(id, normalizedRoot || undefined);
 
         const dataListener = (dataId: string, data: string) => {
@@ -31,12 +33,11 @@ export const Terminal: React.FC<TerminalProps> = ({ id, projectRoot }) => {
         window.electron.terminal.onData(dataListener);
         window.electron.terminal.onExit(exitListener);
 
+        // Lifecycle Guard: Ensure process is killed on unmount
+        // This prevents orphan processes when switching tabs or closing panels
         return () => {
             window.electron.terminal.kill(id);
-            // Note: In a real multi-terminal setup, we'd need to remove listeners, 
-            // but the current Electron API doesn't expose a 'removeListener' yet.
-            // I'll assume only one Terminal component instance per ID exists for now.
-        }
+        };
     }, [id, projectRoot]);
 
     useEffect(() => {
@@ -61,21 +62,16 @@ export const Terminal: React.FC<TerminalProps> = ({ id, projectRoot }) => {
 
     return (
         <div className="terminal-container">
-            {/* Production Command Approval Modal */}
             {pendingCommand && (
-                <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.6)' }}>
-                    <div className="modal-container" style={{ width: '400px' }}>
+                <div className="modal-overlay">
+                    <div className="modal-container">
                         <div className="panel-header">
                             <span className="panel-title">Security Warning</span>
                         </div>
                         <div className="modal-content">
-                            <p style={{ fontSize: '13px', color: 'var(--text-default)' }}>
-                                The AI wants to execute a command on your local system:
-                            </p>
-                            <code className="command-code" style={{ padding: '8px', display: 'block', wordBreak: 'break-all' }}>
-                                {pendingCommand}
-                            </code>
-                            <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '8px' }}>
+                            <p>The AI wants to execute a command on your local system:</p>
+                            <code className="command-code">{pendingCommand}</code>
+                            <p className="form-label" style={{ marginTop: 'var(--space-2)', textTransform: 'none' }}>
                                 ⚠️ Running unverified commands can be dangerous. Only proceed if you trust this action.
                             </p>
                         </div>
@@ -87,10 +83,7 @@ export const Terminal: React.FC<TerminalProps> = ({ id, projectRoot }) => {
                 </div>
             )}
 
-            <div
-                ref={scrollRef}
-                className="terminal-content"
-            >
+            <div ref={scrollRef} className="terminal-content">
                 {lines.join('')}
                 <div className="terminal-prompt-line">
                     <span className="terminal-prompt-icon">

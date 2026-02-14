@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './App.css';
-import { FileTree, PromptPanel } from './components/Layout';
-import { Workspace } from './components/Workspace';
+import { Sidebar } from './components/layout/Sidebar';
+import { MainCanvas } from './components/layout/MainCanvas';
 
 const App: React.FC = () => {
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
@@ -10,6 +10,7 @@ const App: React.FC = () => {
   const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [editorValue, setEditorValue] = useState('// Welcome to Nebula IDE');
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [isChatOpen, setIsChatOpen] = useState(true);
 
   const refreshFiles = async (root: string) => {
     try {
@@ -46,7 +47,7 @@ const App: React.FC = () => {
 
       // Add to open files if not already there
       if (!openFiles.includes(fullPath)) {
-        setOpenFiles(prev => [...prev, fullPath]);
+        setOpenFiles((prev: string[]) => [...prev, fullPath]);
       }
 
       setActiveFile(fullPath);
@@ -74,48 +75,38 @@ const App: React.FC = () => {
     if (!activeFile) return;
     try {
       await window.electron.files.writeFile(activeFile, editorValue);
-      console.log('File saved successfully');
     } catch (error) {
       console.error('Failed to save file:', error);
     }
   };
 
-  const [isChatOpen, setIsChatOpen] = useState(true);
-
   const handleApprove = async () => {
     if (projectRoot) {
       await refreshFiles(projectRoot);
-      setPreviewRefreshKey(prev => prev + 1);
+      setPreviewRefreshKey((prev: number) => prev + 1);
     }
   };
 
   return (
-    <div className="nebula-container">
-      <FileTree
+    <div className="nebula-container subtle-gradient">
+      <Sidebar
+        onOpenFolder={handleOpenFolder}
+      />
+
+      <MainCanvas
         files={files}
         onFileClick={handleFileClick}
         activeFile={activeFile}
-        onOpenFolder={handleOpenFolder}
-      />
-      {isChatOpen && (
-        <PromptPanel
-          activeFile={activeFile}
-          projectRoot={projectRoot}
-          onFileChange={handleApprove}
-        />
-      )}
-      <Workspace
         projectRoot={projectRoot}
-        activeFile={activeFile}
         openFiles={openFiles}
         onTabClick={handleFileClick}
         onTabClose={handleTabClose}
         editorValue={editorValue}
         onEditorChange={setEditorValue}
         onSave={handleSave}
-        isChatOpen={isChatOpen}
-        onToggleChat={() => setIsChatOpen(!isChatOpen)}
         previewRefreshKey={previewRefreshKey}
+        onCommandApprove={handleApprove}
+        onOpenFolder={handleOpenFolder}
       />
     </div>
   );
