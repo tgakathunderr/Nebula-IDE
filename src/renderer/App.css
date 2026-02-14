@@ -1,0 +1,294 @@
+:root {
+  /* Vibecoding Core - Professional Palette */
+  --bg-primary: #09090b;
+  /* Zinc 950 */
+  --bg-secondary: #18181b;
+  /* Zinc 900 */
+  --bg-tertiary: #27272a;
+  /* Zinc 800 */
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-active: var(--accent-primary);
+
+  --accent-primary: #3b82f6;
+  /* Professional Blue */
+  --accent-secondary: #8b5cf6;
+  /* Subtle Violet */
+  --accent-cyan: #06b6d4;
+  --nebula-border: var(--border-subtle);
+
+  --text-active: #ffffff;
+  --text-primary: #e4e4e7;
+  /* Zinc 200 */
+  --text-secondary: #a1a1aa;
+  /* Zinc 400 */
+  --text-muted: #52525b;
+  /* Zinc 600 */
+
+  --font-main: 'Inter', 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  outline: none;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Layout Grid */
+.nebula-container {
+  display: grid;
+  grid-template-columns: 260px 1fr 380px;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* Sidebar / Explorer */
+.file-tree {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-header {
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* Workspace */
+.workspace-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 24px 0 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--nebula-border);
+}
+
+.workspace-tab {
+  padding: 8px 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+}
+
+.workspace-tab.active {
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.05);
+  border-color: var(--nebula-border) var(--nebula-border) transparent var(--nebula-border);
+}
+
+.terminal-zone {
+  height: 240px;
+  background: #000;
+  border-top: 2px solid var(--nebula-border);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.prompt-panel {
+  background: var(--nebula-bg-layered);
+  backdrop-filter: var(--glass-blur);
+  border-left: 1px solid var(--nebula-border);
+  box-shadow: var(--layered-shadow);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Enhanced Typography & Headers */
+.panel-header {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 24px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
+}
+
+/* Futuristic Buttons */
+.nebula-button {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.nebula-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: 0.5s;
+}
+
+.nebula-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+  transform: translateY(-1px);
+}
+
+.nebula-button:hover::before {
+  left: 100%;
+}
+
+.nebula-button-primary {
+  background: var(--accent-violet);
+  border: none;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.nebula-button-primary:hover {
+  background: #a78bfa;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+}
+
+/* File Items */
+.file-item {
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.file-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.file-item.active {
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.05);
+}
+
+.file-item.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+/* Inputs */
+textarea.nebula-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--nebula-border);
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--font-ui);
+  transition: all 0.3s ease;
+}
+
+textarea.nebula-input:focus {
+  border-color: var(--accent-violet);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
